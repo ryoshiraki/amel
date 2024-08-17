@@ -1,0 +1,17 @@
+[package]
+name = "amel_app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+cfg-if.workspace = true
+env_logger.workspace = true
+log.workspace = true
+pollster.workspace = true
+thiserror.workspace = true
+
+amel_gpu = { path = "../amel_gpu" }
+amel_math = { path = "../amel_math" }
+
+winit = { version = "0.29", features = ["rwh_05", "android-native-activity"] }

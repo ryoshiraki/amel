@@ -1,0 +1,19 @@
+[package]
+name = "amel_gpu"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+cfg-if.workspace = true
+env_logger.workspace = true
+log.workspace = true
+pollster.workspace = true
+thiserror.workspace = true
+
+amel_math = { path = "../amel_math" }
+
+wgpu = { version = "22.0.0", features = ["spirv", "glsl", "wgsl"] }
+bytemuck = { version = "1.12", features = [ "derive" ] }
+
+

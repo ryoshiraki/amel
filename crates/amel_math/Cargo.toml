@@ -1,0 +1,15 @@
+[package]
+name = "amel_math"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+env_logger.workspace = true
+log.workspace = true
+anyhow.workspace = true
+
+glam = {version = "0.28.0", features = ["bytemuck"]}
+serde = { version = "1", optional = true, features = ["derive"] }
+
+rand = "0.8.5"
+num = "0.4.1"

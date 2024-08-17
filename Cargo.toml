@@ -1,0 +1,28 @@
+[package]
+name = "amel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+cfg-if.workspace = true
+env_logger.workspace = true
+log.workspace = true
+pollster.workspace = true
+thiserror.workspace = true
+
+amel_app = { path = "crates/amel_app" }
+amel_gpu = { path = "crates/amel_gpu" }
+amel_math = { path = "crates/amel_math" }
+
+[workspace]
+members = ["crates/*",]
+resolver = "2"
+
+[workspace.dependencies]
+anyhow = "1.0.86"
+cfg-if = "1"
+env_logger = "0.11"
+log = "0.4"
+pollster = "0.3"
+thiserror = "1.0.63"
