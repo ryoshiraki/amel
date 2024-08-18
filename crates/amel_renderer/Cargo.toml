@@ -1,0 +1,12 @@
+[package]
+name = "amel_renderer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+env_logger.workspace = true
+log.workspace = true
+anyhow.workspace = true
+
+amel_gpu = { path = "../amel_gpu" }
+amel_math = { path = "../amel_math" }
