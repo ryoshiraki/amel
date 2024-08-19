@@ -1,14 +1,20 @@
+pub mod frame_counter;
+pub mod surface;
+
+pub use frame_counter::*;
+pub use surface::*;
+
+use std::sync::Arc;
 use super::config::window_config::WindowConfig;
-use winit;
 
 use amel_gpu::prelude::*;
 use amel_math::prelude::*;
-use std::sync::Arc;
 
 pub struct Window {
     window: Arc<winit::window::Window>,
     config: WindowConfig,
-    // frame_counter: FrameCounter,
+    frame_counter: FrameCounter,
+    surface: SurfaceWrapper,
 }
 
 impl Window {
@@ -64,23 +70,9 @@ impl Window {
         Ok(Self {
             window: Arc::new(window),
             config,
-            // frame_counter: FrameCounter::new(),
+            frame_counter: FrameCounter::new(),
+            surface: SurfaceWrapper::new(),
         })
-    }
-
-    pub fn configure(
-        &self,
-        instance: &wgpu::Instance,
-        adapter: &wgpu::Adapter,
-        device: &wgpu::Device,
-    ) -> (wgpu::Surface, wgpu::SurfaceConfiguration) {
-        let surface = instance.create_surface(self.window.clone()).unwrap();
-        let size = self.window.inner_size();
-        let surface_config = surface
-            .get_default_config(adapter, size.width, size.height)
-            .unwrap();
-        surface.configure(device, &surface_config);
-        (surface, surface_config)
     }
 
     pub fn request_redraw(&self) {
@@ -95,21 +87,35 @@ impl Window {
         &self.config
     }
 
-    pub fn update(&mut self) {
-        // self.frame_counter.update();
+    pub fn surface(&mut self) -> &mut SurfaceWrapper {
+        &mut self.surface
     }
 
-    // pub fn elapsed_secs(&self) -> f32 {
-    //     self.frame_counter.elapsed_secs()
-    // }
+    pub fn update(&mut self) {
+        self.frame_counter.update();
+    }
 
-    // pub fn fps(&self) -> f32 {
-    //     self.frame_counter.fps()
-    // }
+    pub fn resume(&mut self, instance: &wgpu::Instance, adapter: &wgpu::Adapter, device: &wgpu::Device) {
+        self.surface.resume(instance, adapter, device, self.window_arc(), false);
+    }
 
-    // pub fn elapsed_frames(&self) -> u32 {
-    //     self.frame_counter.frame_count()
-    // }
+    pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        self.config.size = winit::dpi::LogicalSize::new(width, height);
+        self.surface.resize(device, width, height);
+    }
+
+    
+    pub fn elapsed_secs(&self) -> f32 {
+        self.frame_counter.elapsed_secs()
+    }
+
+    pub fn fps(&self) -> f32 {
+        self.frame_counter.fps()
+    }
+
+    pub fn elapsed_frames(&self) -> u32 {
+        self.frame_counter.frame_count()
+    }
 
     pub fn scale_factor(&self) -> f64 {
         self.window.scale_factor()
@@ -202,21 +208,6 @@ impl Window {
     //     }
     // }
 
-    // pub fn start_condition(e: &Event<()>) -> bool {
-    //     match e {
-    //         // On all other platforms, we can create the surface immediately.
-    //         Event::NewEvents(StartCause::Init) => !cfg!(target_os = "android"),
-    //         // On android we need to wait for a resumed event to create the surface.
-    //         Event::Resumed => cfg!(target_os = "android"),
-    //         _ => false,
-    //     }
-    // }
-
-    // pub fn resume(&mut self, instance: &wgpu::Instance) {
-    //     if cfg!(target_os = "android") {
-    //         self.surface = Some(instance.create_surface(self.window()));
-    //     }
-    // }
 }
 
 trait ToVec2 {

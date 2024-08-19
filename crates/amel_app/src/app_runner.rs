@@ -2,11 +2,13 @@ use std::collections::HashMap;
 
 use thiserror::Error;
 use cfg_if::cfg_if;
+use winit::window;
 
 use super::config::*;
 use super::device::*;
-use super::window::Window;
+use super::window::{Window, SurfaceWrapper};
 use amel_math::prelude::*;
+use amel_gpu::prelude::*;
 
 #[allow(unused)]
 pub trait App: Sized {
@@ -51,8 +53,9 @@ impl AppRunner {
         .await
         .map_err(|e| AppError::GpuInitialization(e.to_string()))?;
 
-        for window in windows.values() {
-        }
+        // for window in windows.values_mut() {
+        //     window.configure(&device_context.instance, &device_context.adapter, device_context.device())
+        // }
 
         let mut app = None;
 
@@ -69,20 +72,28 @@ impl AppRunner {
             event_loop,
             move |event: winit::event::Event<()>, target: &winit::event_loop::EventLoopWindowTarget<()>| {
                 match event {
-                    ref e if start_condition(e) => {
-                        //surface.resume(&context, window_loop.window.clone(), A::SRGB);
+                    ref e if SurfaceWrapper::start_condition(e) => {
+                        for window in windows.values_mut() {
+                            window.resume(
+                                &device_context.instance,
+                                 &device_context.adapter, 
+                                 &device_context.device())
+                        }
+
                         if app.is_none() {
                             app = Some(A::create(&device_context));
                         }
                     },
                     winit::event::Event::Suspended => {
-                        // surface.suspend();
+                        for window in windows.values_mut() {
+                            window.surface().suspend();
+                        }
                     },
                     winit::event::Event::WindowEvent { event, window_id } => {
                         if let Some(window) = windows.get_mut(&window_id) {
                             match event {
                                 winit::event::WindowEvent::Resized(size) => {
-                                    // window.resize(size.width, size.height);
+                                    window.resize(device_context.device(), size.width, size.height);
                                     // app.resize(size.width, size.height);
                                     window.request_redraw();
                                 },
@@ -93,6 +104,13 @@ impl AppRunner {
 
                                     let app = app.as_mut().unwrap();
 
+                                    let frame = window.surface().acquire(device_context.device());
+                                    let view = frame.texture.create_view(&wgpu::TextureViewDescriptor {
+                                        format: Some(window.surface().config().view_formats[0]),
+                                        ..wgpu::TextureViewDescriptor::default()
+                                    });
+
+                                    frame.present();
 
                                     window.request_redraw();
                                 }

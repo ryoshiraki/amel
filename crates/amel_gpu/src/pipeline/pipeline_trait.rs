@@ -21,8 +21,3 @@ pub trait PipelineTrait: Deref<Target = wgpu::RenderPipeline> + Sized {
 //         &self.pipeline
 //     }
 // }
-
-struct Pipeline {
-    pipeline: wgpu::RenderPipeline,
-    vertex_state: wgpu::VertexState,
-}
