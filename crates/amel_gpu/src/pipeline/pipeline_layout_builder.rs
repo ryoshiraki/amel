@@ -23,6 +23,12 @@ impl<'a> PipelineLayoutBuilder<'a> {
     }
 
     #[inline]
+    pub fn add_bindings(mut self, bindings: &'a [&'a wgpu::BindGroupLayout]) -> Self {
+        self.bindings.extend_from_slice(bindings);
+        self
+    }
+
+    #[inline]
     pub fn add_push_constant_range(mut self, range: wgpu::PushConstantRange) -> Self {
         self.push_constant_ranges.push(range);
         self

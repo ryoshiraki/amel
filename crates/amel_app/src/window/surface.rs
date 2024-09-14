@@ -1,11 +1,13 @@
 use amel_gpu::prelude::*;
+
+
 use std::sync::Arc;
+
+
 
 pub struct SurfaceWrapper {
     surface: Option<wgpu::Surface<'static>>,
     config: Option<wgpu::SurfaceConfiguration>,
-    surface_texture: Option<wgpu::SurfaceTexture>,
-    depth_texture: Option<Texture>,
 }
 
 impl SurfaceWrapper {
@@ -13,48 +15,8 @@ impl SurfaceWrapper {
         Self {
             surface: None,
             config: None,
-            surface_texture: None,
-            depth_texture: None,
         }
     }
-    // pub fn new(
-    //     window: &Window,
-    //     instance: &wgpu::Instance,
-    //     adapter: &wgpu::Adapter,
-    //     device: &wgpu::Device,
-    // ) -> Result<Self, wgpu::CreateSurfaceError> {
-    //     let config = window.config();
-       
-    //     let window = window.window_arc().clone();
-    //     let size = window.inner_size();
-
-    //     if cfg!(target_arch = "wasm32") {
-    //         self.surface = Some(instance.create_surface(window).unwrap());
-    //     }
-
-    //     let surface = instance.create_surface(window)?;
-    //     let surface_config = surface
-    //         .get_default_config(adapter, size.width, size.height)
-    //         .unwrap();
-    //     surface.configure(device, &surface_config);
-
-    //     let depth_texture = config.depth_format.map(|format| {
-    //         TextureBuilder::new()
-    //             .label("depth_texture")
-    //             .size(config.size.width, config.size.height)
-    //             .format(format)
-    //             .sample_count(1)
-    //             .usage(wgpu::TextureUsages::RENDER_ATTACHMENT)
-    //             .build(device)
-    //     });
-
-    //     Ok(Self {
-    //         surface,
-    //         surface_config,
-    //         surface_texture: None,
-    //         depth_texture,
-    //     })
-    // }    
 
     /// Called after the instance is created, but before we request an adapter.
     ///
@@ -152,7 +114,6 @@ impl SurfaceWrapper {
                     .expect("Failed to acquire next surface texture!")
             }
         }
-
     }
     /// On suspend on android, we drop the surface, as it's no longer valid.
     ///
@@ -172,3 +133,4 @@ impl SurfaceWrapper {
     }
 
 }
+

@@ -15,6 +15,9 @@ pub struct Window {
     config: WindowConfig,
     frame_counter: FrameCounter,
     surface: SurfaceWrapper,
+    // surface_render_target: Option<SurfaceRenderTarget>,
+    surface_texture: Option<wgpu::SurfaceTexture>,
+    depth_texture: Option<Texture>,
 }
 
 impl Window {
@@ -62,16 +65,13 @@ impl Window {
             window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
         }
 
-        // let mut surface: Option<wgpu::Surface<'static>> = None;
-        // if cfg!(target_arch = "wasm32") {
-        //     surface = Some(instance.create_surface(window).unwrap());
-        // }
-
         Ok(Self {
             window: Arc::new(window),
             config,
             frame_counter: FrameCounter::new(),
             surface: SurfaceWrapper::new(),
+            surface_texture: None,
+            depth_texture: None,
         })
     }
 
@@ -91,20 +91,50 @@ impl Window {
         &mut self.surface
     }
 
-    pub fn update(&mut self) {
+    pub fn pre_adapter(&mut self, instance: &wgpu::Instance) {
+        self.surface.pre_adapter(instance, self.window_arc());
+    }
+    
+    pub fn update(&mut self, device: &wgpu::Device) {
         self.frame_counter.update();
+        self.surface_texture = Some(self.surface.acquire(device));
+    }
+
+    pub fn present(&mut self) {
+        if let Some(surface_texture) = self.surface_texture.take() {
+            surface_texture.present();
+        }
     }
 
     pub fn resume(&mut self, instance: &wgpu::Instance, adapter: &wgpu::Adapter, device: &wgpu::Device) {
         self.surface.resume(instance, adapter, device, self.window_arc(), false);
+
+        self.depth_texture = self.config.depth_format.map(|format| {
+            TextureBuilder::new()
+                .label("depth_texture")
+                .size(self.config.size.width, self.config.size.height)
+                .format(format)
+                .sample_count(1)
+                .usage(wgpu::TextureUsages::RENDER_ATTACHMENT)
+                .build(device)
+        });
     }
 
     pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         self.config.size = winit::dpi::LogicalSize::new(width, height);
         self.surface.resize(device, width, height);
+
+        if let Some(ref mut depth_texture) = self.depth_texture {
+            *depth_texture = TextureBuilder::new()
+                .label("depth_texture")
+                .size(width, height)
+                .format(depth_texture.format())
+                .sample_count(1)
+                .usage(wgpu::TextureUsages::RENDER_ATTACHMENT)
+                .build(device);
+        }
     }
 
-    
     pub fn elapsed_secs(&self) -> f32 {
         self.frame_counter.elapsed_secs()
     }

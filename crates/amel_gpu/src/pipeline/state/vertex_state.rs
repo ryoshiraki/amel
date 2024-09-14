@@ -56,7 +56,7 @@ pub struct VertexStateBuilder<'a> {
     shader: Option<&'a wgpu::ShaderModule>,
     entry_point: &'a str,
     compilation_options: wgpu::PipelineCompilationOptions<'a>,
-    buffers: Option<&'a Vec<wgpu::VertexBufferLayout<'a>>>,
+    buffers: Option<&'a Vec<wgpu::VertexBufferLayout<'static>>>,
 }
 
 impl<'a> Default for VertexStateBuilder<'a> {
@@ -90,7 +90,7 @@ impl<'a> VertexStateBuilder<'a> {
         self
     }
 
-    pub fn buffers(mut self, buffers: &'a Vec<wgpu::VertexBufferLayout<'a>>) -> Self {
+    pub fn buffers(mut self, buffers: &'a Vec<wgpu::VertexBufferLayout<'static>>) -> Self {
         self.buffers = Some(buffers);
         self
     }

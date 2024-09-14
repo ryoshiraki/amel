@@ -1,11 +1,11 @@
-// pub mod matrix_stack;
-// pub mod primitive;
+pub mod matrix_stack;
+pub mod primitive;
 // pub mod random;
 
 pub mod prelude {
 
-    // pub use super::matrix_stack::*;
-    // pub use super::primitive::prelude::*;
+    pub use super::matrix_stack::*;
+    pub use super::primitive::prelude::*;
     // pub use super::random::*;
 
     pub use std::f32::consts::*;

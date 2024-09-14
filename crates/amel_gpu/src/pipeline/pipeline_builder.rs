@@ -1,23 +1,15 @@
-use super::pipeline_trait::PipelineTrait;
-
-/// Types that may be directly converted into a pipeline layout descriptor.
-pub trait IntoPipelineLayoutDescriptor<'a> {
-    /// Convert the type into a pipeline layout descriptor.
-    fn into_pipeline_layout_descriptor(self) -> wgpu::PipelineLayoutDescriptor<'a>;
-}
-
 #[derive(Debug)]
-pub struct RenderPipelineBuilder<'a, T: PipelineTrait> {
+pub struct RenderPipelineBuilder<'a> {
     layout: wgpu::PipelineLayout,
     vertex: wgpu::VertexState<'a>,
     fragment: Option<wgpu::FragmentState<'a>>,
     primitive: wgpu::PrimitiveState,
     depth_stencil: Option<wgpu::DepthStencilState>,
     multisample: wgpu::MultisampleState,
-    _marker: std::marker::PhantomData<&'a T>,
+    // _marker: std::marker::PhantomData<&'a T>,
 }
 
-impl<'a, T: PipelineTrait> RenderPipelineBuilder<'a, T> {
+impl<'a> RenderPipelineBuilder<'a> {
     pub const DEFAULT_FRONT_FACE: wgpu::FrontFace = wgpu::FrontFace::Ccw;
     pub const DEFAULT_CULL_MODE: Option<wgpu::Face> = None;
     pub const DEFAULT_POLYGON_MODE: wgpu::PolygonMode = wgpu::PolygonMode::Fill;
@@ -82,7 +74,7 @@ impl<'a, T: PipelineTrait> RenderPipelineBuilder<'a, T> {
             primitive: Self::DEFAULT_PRIMITIVE,
             depth_stencil: None,
             multisample: Self::DEFAULT_MULTISAMPLE,
-            _marker: std::marker::PhantomData,
+            // _marker: std::marker::PhantomData,
         }
     }
 
@@ -320,7 +312,7 @@ impl<'a, T: PipelineTrait> RenderPipelineBuilder<'a, T> {
     ///
     /// - A rasterization state field was specified but no fragment shader was given.
     /// - A color state field was specified but no fragment shader was given.
-    pub fn build(self, device: &'a wgpu::Device, queue: &'a wgpu::Queue) -> T {
+    pub fn build(self, device: &'a wgpu::Device) -> wgpu::RenderPipeline {
         let RenderPipelineBuilder {
             layout,
             vertex,
@@ -343,7 +335,6 @@ impl<'a, T: PipelineTrait> RenderPipelineBuilder<'a, T> {
             cache: None,
         };
 
-        let pipeline = device.create_render_pipeline(&pipeline_desc);
-        T::build(&pipeline)
+        device.create_render_pipeline(&pipeline_desc)
     }
 }

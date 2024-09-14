@@ -67,6 +67,7 @@ version = "0.1.0"
 dependencies = [
  "amel_gpu",
  "amel_math",
+ "amel_renderer",
  "anyhow",
  "cfg-if",
  "env_logger",
@@ -106,14 +107,33 @@ dependencies = [
 ]
 
 [[package]]
-name = "amel_renderer"
+name = "amel_mesh"
 version = "0.1.0"
 dependencies = [
  "amel_gpu",
  "amel_math",
  "anyhow",
+ "bytemuck",
+ "cfg-if",
+ "env_logger",
+ "hexasphere",
+ "log",
+ "pollster",
+ "thiserror",
+]
+
+[[package]]
+name = "amel_renderer"
+version = "0.1.0"
+dependencies = [
+ "amel_gpu",
+ "amel_math",
+ "amel_mesh",
+ "anyhow",
+ "bytemuck",
  "env_logger",
  "log",
+ "once_cell",
 ]
 
 [[package]]
@@ -458,6 +478,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "const_soft_float"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87ca1caa64ef4ed453e68bb3db612e51cf1b2f5b871337f0fcab1c8f87cc3dff"
+
+[[package]]
+name = "constgebra"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1aaf9b65849a68662ac6c0810c8893a765c960b907dd7cfab9c4a50bf764fbc"
+dependencies = [
+ "const_soft_float",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -766,6 +801,16 @@ name = "hermit-abi"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbf6a919d6cf397374f7dfeeea91d974c7c0a7221d0d0f4f20d859d329e53fcc"
+
+[[package]]
+name = "hexasphere"
+version = "13.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca0de3be19fe0074ab5eba9a34f6ba12e5d56b4e48aefd75926424d89da1ea25"
+dependencies = [
+ "constgebra",
+ "glam",
+]
 
 [[package]]
 name = "hexf-parse"

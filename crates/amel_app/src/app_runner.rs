@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
-use thiserror::Error;
 use cfg_if::cfg_if;
-use winit::window;
+use thiserror::Error;
 
 use super::config::*;
 use super::device::*;
-use super::window::{Window, SurfaceWrapper};
-use amel_math::prelude::*;
-use amel_gpu::prelude::*;
+use super::window::{SurfaceWrapper, Window};
+use amel_renderer::prelude::*;
 
 #[allow(unused)]
 pub trait App: Sized {
@@ -41,7 +39,8 @@ pub struct AppRunner {}
 
 impl AppRunner {
     async fn start<A: App>(config: AppConfig) -> Result<(), AppError> {
-        let event_loop = winit::event_loop::EventLoop::new().map_err(|e| AppError::Initialization(e.to_string()))?;
+        let event_loop = winit::event_loop::EventLoop::new()
+            .map_err(|e| AppError::Initialization(e.to_string()))?;
 
         let mut windows = HashMap::new();
         for window_config in config.window_configs {
@@ -50,14 +49,11 @@ impl AppRunner {
         }
 
         let device_context = DeviceContext::new(config.device_config, windows.values().next())
-        .await
-        .map_err(|e| AppError::GpuInitialization(e.to_string()))?;
-
-        // for window in windows.values_mut() {
-        //     window.configure(&device_context.instance, &device_context.adapter, device_context.device())
-        // }
+            .await
+            .map_err(|e| AppError::GpuInitialization(e.to_string()))?;
 
         let mut app = None;
+        initialize_render_resources(device_context.device());
 
         cfg_if! {
             if #[cfg(target_arch = "wasm32")] {
@@ -70,25 +66,27 @@ impl AppRunner {
 
         let _ = (event_loop_function)(
             event_loop,
-            move |event: winit::event::Event<()>, target: &winit::event_loop::EventLoopWindowTarget<()>| {
+            move |event: winit::event::Event<()>,
+                  target: &winit::event_loop::EventLoopWindowTarget<()>| {
                 match event {
                     ref e if SurfaceWrapper::start_condition(e) => {
                         for window in windows.values_mut() {
                             window.resume(
                                 &device_context.instance,
-                                 &device_context.adapter, 
-                                 &device_context.device())
+                                &device_context.adapter,
+                                &device_context.device(),
+                            )
                         }
 
                         if app.is_none() {
                             app = Some(A::create(&device_context));
                         }
-                    },
+                    }
                     winit::event::Event::Suspended => {
                         for window in windows.values_mut() {
                             window.surface().suspend();
                         }
-                    },
+                    }
                     winit::event::Event::WindowEvent { event, window_id } => {
                         if let Some(window) = windows.get_mut(&window_id) {
                             match event {
@@ -96,7 +94,7 @@ impl AppRunner {
                                     window.resize(device_context.device(), size.width, size.height);
                                     // app.resize(size.width, size.height);
                                     window.request_redraw();
-                                },
+                                }
                                 winit::event::WindowEvent::RedrawRequested => {
                                     if app.is_none() {
                                         return;
@@ -104,23 +102,25 @@ impl AppRunner {
 
                                     let app = app.as_mut().unwrap();
 
-                                    let frame = window.surface().acquire(device_context.device());
-                                    let view = frame.texture.create_view(&wgpu::TextureViewDescriptor {
-                                        format: Some(window.surface().config().view_formats[0]),
-                                        ..wgpu::TextureViewDescriptor::default()
-                                    });
+                                    window.update(device_context.device());
 
-                                    frame.present();
+                                    // let mut frame = window.acquire(device_context.device());
+                                    // let view = frame.texture.create_view(&wgpu::TextureViewDescriptor {
+                                    //     format: Some(window.surface().config().view_formats[0]),
+                                    //     ..wgpu::TextureViewDescriptor::default()
+                                    // });
+
+                                    window.present();
 
                                     window.request_redraw();
                                 }
                                 _ => {}
                             }
                         }
-                    },
+                    }
                     _ => {}
                 }
-            }
+            },
         );
 
         Ok(())
@@ -137,16 +137,6 @@ impl AppRunner {
                     log::error!("{}", e);
                 }
             }
-        }    
-    }
-}
-
-fn start_condition(e: &winit::event::Event<()>) -> bool {
-    match e {
-        // On all other platforms, we can create the surface immediately.
-        winit::event::Event::NewEvents(winit::event::StartCause::Init) => !cfg!(target_os = "android"),
-        // On android we need to wait for a resumed event to create the surface.
-        winit::event::Event::Resumed => cfg!(target_os = "android"),
-        _ => false,
+        }
     }
 }

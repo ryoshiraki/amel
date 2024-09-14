@@ -13,6 +13,7 @@ thiserror.workspace = true
 
 amel_gpu = { path = "../amel_gpu" }
 amel_math = { path = "../amel_math" }
+amel_renderer = { path = "../amel_renderer" }
 
 winit = { version = "0.29", features = ["rwh_05", "android-native-activity"] }
 web-time = "=0.2.3"

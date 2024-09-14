@@ -1,0 +1,18 @@
+[package]
+name = "amel_mesh"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+cfg-if.workspace = true
+env_logger.workspace = true
+log.workspace = true
+pollster.workspace = true
+thiserror.workspace = true
+
+amel_gpu = { path = "../amel_gpu" }
+amel_math = { path = "../amel_math" }
+
+bytemuck = { version = "1.12", features = [ "derive" ] }
+hexasphere = "13.1.0"
