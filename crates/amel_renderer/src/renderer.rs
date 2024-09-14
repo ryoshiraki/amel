@@ -1,16 +1,11 @@
 use super::render_context::RenderContext;
-use amel_gpu::{
-    pipeline::{self, state::depth_stencil_state},
-    prelude::*,
-};
+use amel_gpu::prelude::*;
+use amel_math::primitive;
 use std::sync::Arc;
 use wgpu::core::device::queue;
 
-pub struct Renderer<'a, T>
-where
-    T: AbstractPipeline<'a>,
-{
-    pipeline: T,
+pub struct Renderer<'a> {
+    pipeline: wgpu::RenderPipeline,
     render_bundle_encoder: wgpu::RenderBundleEncoder<'a>,
     render_bundle_depth_stencil: Option<wgpu::RenderBundleDepthStencil>,
     render_bundles: Vec<wgpu::RenderBundle>,
@@ -18,13 +13,13 @@ where
     depth_view: Option<Arc<wgpu::TextureView>>,
 }
 
-impl<'a, T: AbstractPipeline<'a>> Renderer<'a, T> {
-    pub fn new(
+impl<'a> Renderer<'a> {
+    pub fn new<T: PipelineTrait<'a>>(
         device: &'a wgpu::Device,
-        pipeline: T,
         color_texture: &[&Texture],
         depth_texture: Option<&Texture>,
-        blending: wgpu::BlendState,
+        blend_state: wgpu::BlendState,
+        primitive_topology: wgpu::PrimitiveTopology,
     ) -> Self {
         let render_bundle_depth_stencil =
             depth_texture.map(|depth_texture| wgpu::RenderBundleDepthStencil {
@@ -33,19 +28,27 @@ impl<'a, T: AbstractPipeline<'a>> Renderer<'a, T> {
                 stencil_read_only: false,
             });
 
-        let color_target = ColorTargetStateBuilder::new()
-            .format(color_texture[0].format())
-            .blend(blending)
-            .build();
+        // let color_target = ColorTargetStateBuilder::new()
+        //     .format(color_texture[0].format())
+        //     .blend(blend_state)
+        //     .build();
 
-        let depth_stencil: Option<wgpu::DepthStencilState> = depth_texture.map(|texture| {
-            DepthStencilStateBuilder::new()
-                .format(texture.format())
-                .depth_write_enabled(true)
-                .depth_compare(wgpu::CompareFunction::Less)
-                .build()
-        });
+        // let depth_stencil: Option<wgpu::DepthStencilState> = depth_texture.map(|texture| {
+        //     DepthStencilStateBuilder::new()
+        //         .format(texture.format())
+        //         .depth_write_enabled(true)
+        //         .depth_compare(wgpu::CompareFunction::Less)
+        //         .build()
+        // });
 
+        let pipeline = T::build(
+            device,
+            color_texture[0].format(),
+            depth_texture.map(|texture| texture.format()),
+            blend_state,
+            primitive_topology,
+            1,
+        );
         Renderer {
             pipeline,
             render_bundle_encoder: device.create_render_bundle_encoder(
@@ -98,7 +101,7 @@ impl<'a, T: AbstractPipeline<'a>> Renderer<'a, T> {
                 multiview: None,
             });
 
-        render_bundle_encoder.set_pipeline(self.pipeline.to_wgpu());
+        render_bundle_encoder.set_pipeline(&self.pipeline);
         let mut context = RenderContext::new(render_bundle_encoder);
         f(&mut context);
 

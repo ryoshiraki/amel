@@ -29,21 +29,28 @@ impl VertexAttributes {
 }
 
 #[derive(Default, Clone, Debug, Hash, Eq, PartialEq)]
-pub struct VertexBufferLayoutsBuilder<'a> {
-    attributes: Vec<&'a VertexAttributes>,
+pub struct VertexBufferLayoutsBuilder {
+    attributes: Vec<VertexAttributes>,
 }
 
-impl<'a> VertexBufferLayoutsBuilder<'a> {
+impl VertexBufferLayoutsBuilder {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn add_attributes(&mut self, attributes: &'a VertexAttributes) -> &mut Self {
+    pub fn add_attributes(&mut self, attributes: VertexAttributes) -> &mut Self {
         self.attributes.push(attributes);
         self
     }
 
-    pub fn build(&self) -> Vec<wgpu::VertexBufferLayout<'a>> {
+    pub fn add_attributes_vec(&mut self, attributes: Vec<VertexAttributes>) -> &mut Self {
+        for attr in attributes {
+            self.add_attributes(attr);
+        }
+        self
+    }
+
+    pub fn build(&self) -> Vec<wgpu::VertexBufferLayout> {
         self.attributes
             .iter()
             .map(|attr| attr.vertex_buffer_layout())
@@ -56,7 +63,7 @@ pub struct VertexStateBuilder<'a> {
     shader: Option<&'a wgpu::ShaderModule>,
     entry_point: &'a str,
     compilation_options: wgpu::PipelineCompilationOptions<'a>,
-    buffers: Option<&'a Vec<wgpu::VertexBufferLayout<'static>>>,
+    buffers: Option<&'a Vec<wgpu::VertexBufferLayout<'a>>>,
 }
 
 impl<'a> Default for VertexStateBuilder<'a> {
@@ -90,7 +97,7 @@ impl<'a> VertexStateBuilder<'a> {
         self
     }
 
-    pub fn buffers(mut self, buffers: &'a Vec<wgpu::VertexBufferLayout<'static>>) -> Self {
+    pub fn buffers(mut self, buffers: &'a Vec<wgpu::VertexBufferLayout<'a>>) -> Self {
         self.buffers = Some(buffers);
         self
     }

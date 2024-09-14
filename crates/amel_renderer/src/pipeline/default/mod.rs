@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{ops::Deref, vec};
 
 use super::Uniforms;
 use amel_gpu::prelude::*;
@@ -14,104 +14,45 @@ impl DefaultPipeline {
     }
 }
 
-impl<'a> AbstractPipeline<'a> for DefaultPipeline {
-    fn build(
-        device: &'a wgpu::Device,
-        queue: &'a wgpu::Queue,
-        color_targets: &[Option<wgpu::ColorTargetState>],
-        depth_stencil_state: Option<wgpu::DepthStencilState>,
-        primitive_topology: wgpu::PrimitiveTopology,
-        sample_count: u32,
-    ) -> Self {
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("RgbaPipeline"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("default.wgsl").into()),
-        });
+impl<'a> PipelineTrait<'a> for DefaultPipeline {
+    fn shader_path() -> &'static str {
+        include_str!("default.wgsl")
+    }
 
-        let bind_group_layout = BindGroupLayoutBuilder::new()
+    fn vertex_entry_point() -> &'static str {
+        "vs_main"
+    }
+
+    fn fragment_entry_point() -> &'static str {
+        "fs_main"
+    }
+
+    fn bind_group_layouts(device: &wgpu::Device) -> Vec<wgpu::BindGroupLayout> {
+        let vertex_bindgroup_layout = BindGroupLayoutBuilder::new()
             .add_to_vertex_stage(BindingType::UniformBuffer {
                 has_dynamic_offset: false,
                 min_binding_size: None,
             })
             .build(device);
 
-        let pipeline_layout = PipelineLayoutBuilder::new()
-            .add_binding(&bind_group_layout)
-            // .add_push_constant_range(wgpu::PushConstantRange {
-            //     stages: wgpu::ShaderStages::VERTEX_FRAGMENT,
-            //     range: 0..16,
-            // })
+        let fragment_bindgroup_layout = BindGroupLayoutBuilder::new()
+            .add_to_fragment_stage(BindingType::Texture2D {
+                multisampled: false,
+                filterable: true,
+            })
             .build(device);
 
-        // let vertex_attributes = VertexAttributes::new()
-        //     .add_attribute(0, wgpu::VertexFormat::Float32x3)
-        //     .add_attribute(1, wgpu::VertexFormat::Float32x3)
-        //     .add_attribute(2, wgpu::VertexFormat::Float32x2);
+        vec![vertex_bindgroup_layout, fragment_bindgroup_layout]
+    }
 
-        let pos_attributes: VertexAttributes =
+    fn vertex_attributes() -> Vec<VertexAttributes> {
+        let pos_attributes =
             VertexAttributes::new().add_attribute(0, wgpu::VertexFormat::Float32x3);
-        let normal_attributes: VertexAttributes =
+        let normal_attributes =
             VertexAttributes::new().add_attribute(1, wgpu::VertexFormat::Float32x3);
         let texcoord_attributes: VertexAttributes =
             VertexAttributes::new().add_attribute(2, wgpu::VertexFormat::Float32x2);
 
-        let vertex_buffer_layouts = VertexBufferLayoutsBuilder::new()
-            .add_attributes(&pos_attributes)
-            .add_attributes(&normal_attributes)
-            .add_attributes(&texcoord_attributes)
-            .build();
-
-        let vertex_state = VertexStateBuilder::new()
-            .shader(&shader)
-            .entry_point("vs_main")
-            .buffers(&vertex_buffer_layouts)
-            .build();
-
-        let fragment_state = FragmentStateBuilder::new()
-            .shader(&shader)
-            .entry_point("fs_main")
-            .targets(color_targets)
-            .build();
-
-        RenderPipelineBuilder::from_layout(pipeline_layout, vertex_state)
-            .fragment_state(fragment_state)
-            .depth_stencil(depth_stencil_state)
-            .primitive_topology(primitive_topology)
-            .sample_count(sample_count)
-            .build(device, queue)
-    }
-
-    fn to_wgpu(&self) -> &wgpu::RenderPipeline {
-        &self.pipeline
-    }
-    // fn setup(device: &wgpu::Device, queue: &wgpu::Queue, pipeline: wgpu::RenderPipeline) -> Self {
-    //     let uniform_buffer = DynamicUniformBuffer::new::<Uniforms>(
-    //         device,
-    //         wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-    //         std::mem::size_of::<Uniforms>(),
-    //         256,
-    //     );
-
-    //     Self {
-    //         pipeline,
-    //         uniform_buffer,
-    //     }
-    // }
-
-    // fn pipeline(&self) -> &wgpu::RenderPipeline {
-    //     &self.pipeline
-    // }
-
-    // fn bind_group(&self, device: &wgpu::Device, index: usize) -> wgpu::BindGroup {
-    //     BindGroupBuilder::new()
-    //         .add_entry(self.uniform_buffer.binding(index))
-    //         .build(device, &self.pipeline.get_bind_group_layout(0))
-    // }
-}
-
-impl Deref for DefaultPipeline {
-    type Target = wgpu::RenderPipeline;
-    fn deref(&self) -> &Self::Target {
-        &self.pipeline
+        vec![pos_attributes, normal_attributes, texcoord_attributes]
     }
 }

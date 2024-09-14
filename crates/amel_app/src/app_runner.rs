@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use cfg_if::cfg_if;
+use prelude::DefaultPipeline;
 use thiserror::Error;
 
 use super::config::*;
@@ -63,6 +64,9 @@ impl AppRunner {
                 let event_loop_function = winit::event_loop::EventLoop::run;
             }
         }
+
+        let renderer =
+            Renderer::new::<DefaultPipeline>(&device_context.device(), &device_context.queue());
 
         let _ = (event_loop_function)(
             event_loop,

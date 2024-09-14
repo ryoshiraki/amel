@@ -1,10 +1,10 @@
-use super::{prelude::*, state::depth_stencil_state};
-use std::ops::Deref;
+use super::prelude::*;
 
-pub trait PipelineTrait<'a>: Deref<Target = wgpu::RenderPipeline> + Sized {
+pub trait PipelineTrait<'a> {
     fn build(
         device: &'a wgpu::Device,
-        queue: &'a wgpu::Queue,
+        // vertex_state: wgpu::VertexState,
+        // fragment_state: wgpu::FragmentState,
         color_format: wgpu::TextureFormat,
         depth_format: Option<wgpu::TextureFormat>,
         blend_state: wgpu::BlendState,
@@ -12,13 +12,31 @@ pub trait PipelineTrait<'a>: Deref<Target = wgpu::RenderPipeline> + Sized {
         sample_count: u32,
     ) -> wgpu::RenderPipeline {
         let pipeline_layout = Self::pipeline_layout(device);
-        let color_target_states = Self::color_target_state(color_format, blend_state);
         let depth_stencil_state = Self::depth_stencil_state(depth_format);
 
-        let shader = Self::shader(device);
-        let vertex_buffer_layouts = Self::vertex_buffer_layouts();
-        let vertex_state = Self::vertex_state(shader, "vs_main", &vertex_buffer_layouts);
-        let fragment_state = Self::fragment_state(shader, "fs_main", &color_target_states);
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: wgpu::ShaderSource::Wgsl(Self::shader_path().into()),
+        });
+
+        let vertex_attributes = Self::vertex_attributes();
+        let vertex_buffer_layouts = vertex_attributes
+            .iter()
+            .map(|attr| attr.vertex_buffer_layout())
+            .collect();
+
+        let vertex_state = VertexStateBuilder::new()
+            .shader(&shader)
+            .entry_point(Self::vertex_entry_point())
+            .buffers(&vertex_buffer_layouts)
+            .build();
+
+        let color_target_states = Self::color_target_states(color_format, blend_state);
+        let fragment_state = FragmentStateBuilder::new()
+            .shader(&shader)
+            .entry_point(Self::fragment_entry_point())
+            .targets(&color_target_states)
+            .build();
 
         RenderPipelineBuilder::from_layout(pipeline_layout, vertex_state)
             .fragment_state(fragment_state)
@@ -28,14 +46,24 @@ pub trait PipelineTrait<'a>: Deref<Target = wgpu::RenderPipeline> + Sized {
             .build(device)
     }
 
-    fn shader(device: &wgpu::Device) -> &'a wgpu::ShaderModule;
-    fn bind_group_layouts(device: &wgpu::Device) -> Vec<&wgpu::BindGroupLayout>;
-    fn vertex_buffer_layouts() -> Vec<wgpu::VertexBufferLayout<'static>>;
+    fn shader_path() -> &'static str;
+
+    fn vertex_entry_point() -> &'static str {
+        "main"
+    }
+    fn fragment_entry_point() -> &'static str {
+        "main"
+    }
+
+    fn bind_group_layouts(device: &wgpu::Device) -> Vec<wgpu::BindGroupLayout>;
+
+    fn vertex_attributes() -> Vec<VertexAttributes>;
 
     fn pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
         let bind_group_layouts = Self::bind_group_layouts(device);
+        let layouts_refs: Vec<&wgpu::BindGroupLayout> = bind_group_layouts.iter().collect(); //
         PipelineLayoutBuilder::new()
-            .add_bindings(&bind_group_layouts)
+            .add_bindings(&layouts_refs)
             .build(device)
     }
 
@@ -54,7 +82,7 @@ pub trait PipelineTrait<'a>: Deref<Target = wgpu::RenderPipeline> + Sized {
     fn fragment_state(
         shader: &'a wgpu::ShaderModule,
         entry_point: &'static str,
-        color_taget_states: &'a Vec<Option<wgpu::ColorTargetState>>,
+        color_taget_states: &'a [Option<wgpu::ColorTargetState>],
     ) -> wgpu::FragmentState<'a> {
         FragmentStateBuilder::new()
             .shader(shader)
@@ -63,7 +91,7 @@ pub trait PipelineTrait<'a>: Deref<Target = wgpu::RenderPipeline> + Sized {
             .build()
     }
 
-    fn color_target_state(
+    fn color_target_states(
         color_format: wgpu::TextureFormat,
         blend_state: wgpu::BlendState,
     ) -> Vec<Option<wgpu::ColorTargetState>> {
@@ -86,6 +114,4 @@ pub trait PipelineTrait<'a>: Deref<Target = wgpu::RenderPipeline> + Sized {
                 .build()
         })
     }
-
-    fn to_wgpu(&self) -> &wgpu::RenderPipeline;
 }
