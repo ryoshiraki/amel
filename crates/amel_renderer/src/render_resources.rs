@@ -1,24 +1,45 @@
 use amel_gpu::prelude::*;
 use amel_math::prelude::*;
 use amel_mesh::prelude::*;
+use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
 
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
 
+#[repr(C)]
+#[derive(Default, Copy, Clone, Pod, Zeroable)]
+pub struct Uniforms {
+    pub ortho: [f32; 16],
+    pub transform: [f32; 16],
+    pub color: [f32; 4],
+}
+
+impl Uniforms {
+    pub fn new(color: &Vec4, transform: &Mat4, ortho: &Mat4) -> Self {
+        Self {
+            ortho: ortho.to_cols_array(),
+            transform: transform.to_cols_array(),
+            color: color.to_array(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct RenderResource {
+    uniform_buffer: Arc<DynamicUniformBuffer>,
+
     circle: Arc<GpuMesh>,
     wire_circle: Arc<GpuMesh>,
 
     rectangle: Arc<GpuMesh>,
     wire_rectangle: Arc<GpuMesh>,
+    // sphere: Arc<GpuMesh>,
+    // wire_sphere: Arc<GpuMesh>,
 
-    sphere: Arc<GpuMesh>,
-    wire_sphere: Arc<GpuMesh>,
+    // cuboid: Arc<GpuMesh>,
+    // wire_cuboid: Arc<GpuMesh>,
 
-    cuboid: Arc<GpuMesh>,
-    wire_cuboid: Arc<GpuMesh>,
     // cylinder: Arc<GpuMesh>,
     // cone: Arc<GpuMesh>,
     // torus: Arc<GpuMesh>,
@@ -26,6 +47,13 @@ pub struct RenderResource {
 
 impl RenderResource {
     pub fn new(device: &wgpu::Device) -> Self {
+        let uniform_buffer = Arc::new(DynamicUniformBuffer::new::<Uniforms>(
+            device,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            std::mem::size_of::<Uniforms>(),
+            256,
+        ));
+
         let circle = Arc::new(Circle::new(1.0).to_mesh_builder().build().to_gpu(device));
         let wire_circle = Arc::new(
             Circle::new(1.0)
@@ -73,6 +101,7 @@ impl RenderResource {
         );
 
         Self {
+            uniform_buffer,
             circle,
             wire_circle,
             rectangle,
@@ -82,6 +111,10 @@ impl RenderResource {
             cuboid,
             wire_cuboid,
         }
+    }
+
+    pub fn uniform_buffer(&self) -> Arc<DynamicUniformBuffer> {
+        self.uniform_buffer.clone()
     }
 
     pub fn circle(&self) -> Arc<GpuMesh> {

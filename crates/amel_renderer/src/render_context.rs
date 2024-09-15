@@ -2,21 +2,12 @@ use super::render_resources::*;
 use amel_gpu::prelude::*;
 use amel_math::prelude::*;
 use amel_mesh::prelude::*;
-use bytemuck::{Pod, Zeroable};
-
-#[repr(C)]
-#[derive(Default, Copy, Clone, Pod, Zeroable)]
-pub struct Uniforms {
-    pub ortho: [f32; 16],
-    pub transform: [f32; 16],
-    pub color: [f32; 4],
-}
 
 struct State {
     background_color: Vec4,
     matrix_stack: MatrixStack,
     color: Vec4,
-    orho: Mat4,
+    ortho: Mat4,
 }
 
 impl Default for State {
@@ -25,30 +16,33 @@ impl Default for State {
             background_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
             matrix_stack: MatrixStack::new(),
             color: Vec4::ONE,
-            orho: Mat4::IDENTITY,
+            ortho: Mat4::IDENTITY,
         }
     }
 }
 
 pub struct RenderContext<'a> {
+    device: &'a wgpu::Device,
+    queue: &'a wgpu::Queue,
+
+    pipeline: &'a wgpu::RenderPipeline,
     render_encoder: &'a mut wgpu::RenderPass<'a>,
     state: State,
-    uniform_buffer: DynamicUniformBuffer,
 }
 
 impl<'a> RenderContext<'a> {
-    pub fn new(device: &wgpu::Device, render_encoder: &'a mut wgpu::RenderPass<'a>) -> Self {
-        let uniform_buffer: DynamicUniformBuffer = DynamicUniformBuffer::new::<Uniforms>(
-            device,
-            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            std::mem::size_of::<Uniforms>(),
-            256,
-        );
-
+    pub fn new(
+        device: &'a wgpu::Device,
+        queue: &'a wgpu::Queue,
+        pipeline: &'a wgpu::RenderPipeline,
+        render_encoder: &'a mut wgpu::RenderPass<'a>,
+    ) -> Self {
         RenderContext {
+            device,
+            queue,
+            pipeline,
             render_encoder,
             state: State::default(),
-            uniform_buffer,
         }
     }
 
@@ -71,7 +65,7 @@ impl<'a> RenderContext<'a> {
         near: f32,
         far: f32,
     ) -> &mut Self {
-        self.state.orho = Mat4::orthographic_lh(left, right, bottom, top, near, far);
+        self.state.ortho = Mat4::orthographic_lh(left, right, bottom, top, near, far);
         self
     }
 
@@ -96,13 +90,22 @@ impl<'a> RenderContext<'a> {
     }
 
     pub fn draw_mesh(&mut self, mesh: &GpuMesh) -> &mut Self {
-        // let bundle = if let Some(texture) = self.state.borrow().texture {
-        //     self.bundle_mesh(mesh, Some(texture))
-        // } else {
-        //     self.bundle_mesh(mesh, None)
-        // };
-        // self.render_bundles.push(bundle);
-        self.render_encoder.set_bind_group(0, bind_group, &[]);
+        let resources = RENDER_RESOURCES.get().unwrap().lock().unwrap();
+
+        let uniform_data = Uniforms::new(
+            &self.state.color,
+            self.state.matrix_stack.get(),
+            &self.state.ortho,
+        );
+
+        let uniform_buffer = resources.uniform_buffer();
+        uniform_buffer.update(self.queue, 0, &uniform_data);
+
+        let bind_group = BindGroupBuilder::new()
+            .add_entry(uniform_buffer.binding(0))
+            .build(self.device, &self.pipeline.get_bind_group_layout(0));
+
+        self.render_encoder.set_bind_group(0, &bind_group, &[]);
         self.render_encoder.draw_mesh(mesh);
         self
     }
@@ -111,7 +114,7 @@ impl<'a> RenderContext<'a> {
         let resources = RENDER_RESOURCES.get().unwrap().lock().unwrap();
         self.push_matrix();
         self.scale(Vec3::new(radius, radius, 1.0));
-        self.draw_mesh(&resources.circle().clone());
+        self.draw_mesh(&resources.circle());
         self.pop_matrix();
         self
     }
@@ -120,7 +123,7 @@ impl<'a> RenderContext<'a> {
         let resources = RENDER_RESOURCES.get().unwrap().lock().unwrap();
         self.push_matrix();
         self.scale(Vec3::new(width, height, 1.0));
-        self.draw_mesh(&resources.rectangle().clone());
+        self.draw_mesh(&resources.rectangle());
         self.pop_matrix();
         self
     }

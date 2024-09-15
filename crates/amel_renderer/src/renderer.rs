@@ -97,7 +97,7 @@ impl Renderer {
 
             render_pass.set_pipeline(&self.pipeline);
 
-            let mut context = RenderContext::new(device, &mut render_pass);
+            let mut context = RenderContext::new(device, queue, &self.pipeline, &mut render_pass);
             f(&mut context);
         }
 
