@@ -1,5 +1,3 @@
-use std::{ops::Deref, vec};
-
 use super::Uniforms;
 use amel_gpu::prelude::*;
 

@@ -52,23 +52,23 @@ impl<'a> FragmentStateBuilder<'a> {
     }
 }
 
-pub struct ColorTargetStateBuilder {
+pub struct ColorTargetState {
     pub format: wgpu::TextureFormat,
     pub blend: Option<wgpu::BlendState>,
     pub write_mask: wgpu::ColorWrites,
 }
 
-impl Default for ColorTargetStateBuilder {
+impl Default for ColorTargetState {
     fn default() -> Self {
-        ColorTargetStateBuilder {
-            format: Self::DEFAULT_COLOR_FORMAT,
-            blend: Some(Self::DEFAULT_BLEND_STATE),
+        ColorTargetState {
+            format: ColorTargetState::DEFAULT_COLOR_FORMAT,
+            blend: Some(ColorTargetState::DEFAULT_BLEND_STATE),
             write_mask: Self::DEFAULT_COLOR_WRITE,
         }
     }
 }
 
-impl ColorTargetStateBuilder {
+impl ColorTargetState {
     pub const DEFAULT_COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb; //wgpu::TextureFormat::Rgba16Float;
     pub const DEFAULT_COLOR_BLEND: wgpu::BlendComponent = wgpu::BlendComponent {
         src_factor: wgpu::BlendFactor::SrcAlpha,
@@ -121,12 +121,33 @@ impl ColorTargetStateBuilder {
         self.write_mask = write_mask;
         self
     }
+}
 
-    pub fn build(self) -> wgpu::ColorTargetState {
-        wgpu::ColorTargetState {
-            format: self.format,
-            blend: self.blend,
-            write_mask: self.write_mask,
-        }
+#[derive(Default)]
+pub struct ColorTargetStatesBuilder {
+    color_target_states: Vec<Option<ColorTargetState>>,
+}
+
+impl ColorTargetStatesBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn add_target(mut self, target: Option<ColorTargetState>) -> Self {
+        self.color_target_states.push(target);
+        self
+    }
+
+    pub fn build(self) -> Vec<Option<wgpu::ColorTargetState>> {
+        self.color_target_states
+            .iter()
+            .map(|target| {
+                target.as_ref().map(|target| wgpu::ColorTargetState {
+                    format: target.format,
+                    blend: target.blend,
+                    write_mask: target.write_mask,
+                })
+            })
+            .collect()
     }
 }

@@ -3,16 +3,12 @@ use super::prelude::*;
 pub trait PipelineTrait<'a> {
     fn build(
         device: &'a wgpu::Device,
-        // vertex_state: wgpu::VertexState,
-        // fragment_state: wgpu::FragmentState,
-        color_format: wgpu::TextureFormat,
-        depth_format: Option<wgpu::TextureFormat>,
-        blend_state: wgpu::BlendState,
+        color_target_states: Vec<Option<wgpu::ColorTargetState>>,
+        depth_stencil_state: Option<wgpu::DepthStencilState>,
         primitive_topology: wgpu::PrimitiveTopology,
         sample_count: u32,
     ) -> wgpu::RenderPipeline {
         let pipeline_layout = Self::pipeline_layout(device);
-        let depth_stencil_state = Self::depth_stencil_state(depth_format);
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
@@ -31,7 +27,6 @@ pub trait PipelineTrait<'a> {
             .buffers(&vertex_buffer_layouts)
             .build();
 
-        let color_target_states = Self::color_target_states(color_format, blend_state);
         let fragment_state = FragmentStateBuilder::new()
             .shader(&shader)
             .entry_point(Self::fragment_entry_point())
@@ -89,29 +84,5 @@ pub trait PipelineTrait<'a> {
             .entry_point(entry_point)
             .targets(color_taget_states)
             .build()
-    }
-
-    fn color_target_states(
-        color_format: wgpu::TextureFormat,
-        blend_state: wgpu::BlendState,
-    ) -> Vec<Option<wgpu::ColorTargetState>> {
-        vec![Some(
-            ColorTargetStateBuilder::new()
-                .format(color_format)
-                .blend(blend_state)
-                .build(),
-        )]
-    }
-
-    fn depth_stencil_state(
-        depth_format: Option<wgpu::TextureFormat>,
-    ) -> Option<wgpu::DepthStencilState> {
-        depth_format.map(|format| {
-            DepthStencilStateBuilder::new()
-                .format(format)
-                .depth_write_enabled(true)
-                .depth_compare(wgpu::CompareFunction::Less)
-                .build()
-        })
     }
 }

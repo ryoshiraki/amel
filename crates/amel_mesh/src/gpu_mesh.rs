@@ -61,42 +61,14 @@ impl GpuMesh {
     }
 }
 
-pub trait DrawMesh<'a> {
-    fn draw_mesh(&mut self, mesh: &'a GpuMesh);
-    fn draw_mesh_ranged(&mut self, mesh: &'a GpuMesh, vertex_range: std::ops::Range<u32>);
+pub trait DrawMesh<'a>: wgpu::util::RenderEncoder<'a> {
+    fn draw_mesh(&mut self, mesh: &GpuMesh);
+    fn draw_mesh_ranged(&mut self, mesh: &GpuMesh, vertex_range: std::ops::Range<u32>);
 }
 
 impl<'a> DrawMesh<'a> for wgpu::RenderPass<'a> {
     #[inline]
-    fn draw_mesh_ranged(&mut self, mesh: &'a GpuMesh, vertex_range: std::ops::Range<u32>) {
-        for (index, buffer) in &mesh.vertex_buffers {
-            self.set_vertex_buffer(*index, buffer.slice());
-        }
-
-        if let Some(index_buffer) = &mesh.index_buffer {
-            self.set_index_buffer(index_buffer.slice(), wgpu::IndexFormat::Uint16);
-            self.draw_indexed(vertex_range, 0, 0..1);
-        } else if mesh.vertex_buffers.contains_key(&0) {
-            self.draw(vertex_range, 0..1);
-        }
-    }
-
-    fn draw_mesh(&mut self, mesh: &'a GpuMesh) {
-        let vertex_count = if let Some(index_buffer) = &mesh.index_buffer {
-            index_buffer.count() as u32
-        } else if let Some(buf) = mesh.vertex_buffers.get(&0) {
-            buf.count() as u32
-        } else {
-            0
-        };
-
-        self.draw_mesh_ranged(mesh, 0..vertex_count);
-    }
-}
-
-impl<'a> DrawMesh<'a> for wgpu::RenderBundleEncoder<'a> {
-    #[inline]
-    fn draw_mesh_ranged(&mut self, mesh: &'a GpuMesh, vertex_range: std::ops::Range<u32>) {
+    fn draw_mesh_ranged(&mut self, mesh: &GpuMesh, vertex_range: std::ops::Range<u32>) {
         for (index, buffer) in &mesh.vertex_buffers {
             self.set_vertex_buffer(*index, buffer.slice());
         }
@@ -109,7 +81,7 @@ impl<'a> DrawMesh<'a> for wgpu::RenderBundleEncoder<'a> {
         }
     }
 
-    fn draw_mesh(&mut self, mesh: &'a GpuMesh) {
+    fn draw_mesh(&mut self, mesh: &GpuMesh) {
         let vertex_count = if let Some(index_buffer) = &mesh.index_buffer {
             index_buffer.count() as u32
         } else if let Some(buf) = mesh.vertex_buffers.get(&0) {
@@ -121,6 +93,34 @@ impl<'a> DrawMesh<'a> for wgpu::RenderBundleEncoder<'a> {
         self.draw_mesh_ranged(mesh, 0..vertex_count);
     }
 }
+
+// impl<'a> DrawMesh<'a> for wgpu::RenderBundleEncoder<'a> {
+//     #[inline]
+//     fn draw_mesh_ranged(&mut self, mesh: &GpuMesh, vertex_range: std::ops::Range<u32>) {
+//         for (index, buffer) in &mesh.vertex_buffers {
+//             self.set_vertex_buffer(*index, buffer.slice());
+//         }
+
+//         if let Some(index_buffer) = &mesh.index_buffer {
+//             self.set_index_buffer(index_buffer.slice(), mesh.index_format);
+//             self.draw_indexed(vertex_range, 0, 0..1);
+//         } else if mesh.vertex_buffers.contains_key(&0) {
+//             self.draw(vertex_range, 0..1);
+//         }
+//     }
+
+//     fn draw_mesh(&mut self, mesh: &GpuMesh) {
+//         let vertex_count = if let Some(index_buffer) = &mesh.index_buffer {
+//             index_buffer.count() as u32
+//         } else if let Some(buf) = mesh.vertex_buffers.get(&0) {
+//             buf.count() as u32
+//         } else {
+//             0
+//         };
+
+//         self.draw_mesh_ranged(mesh, 0..vertex_count);
+//     }
+// }
 
 pub trait ToGpuMesh {
     fn to_gpu(&self, device: &wgpu::Device) -> GpuMesh;
@@ -160,30 +160,4 @@ impl ToGpuMesh for Mesh {
             index_format,
         }
     }
-
-    // fn to_gpu(&self, device: &wgpu::Device) -> GpuMesh {
-    //     let vertex_buffer_data = self.get_vertex_buffer_data();
-
-    //     let vertex_buffer = BufferBuilder::new()
-    //         .vertex()
-    //         .copy_dst()
-    //         .build_with_data(device, &vertex_buffer_data);
-
-    //     let index_buffer = self.indices().map(|indices| match indices {
-    //         Indices::U16(data) => BufferBuilder::new().index().build_with_data(device, data),
-    //         Indices::U32(data) => BufferBuilder::new().index().build_with_data(device, data),
-    //     });
-
-    //     let mut attributes = VertexAttributes::new();
-    //     for data in self.attributes.values() {
-    //         attributes = attributes.add_attribute(data.attribute.id, data.attribute.format);
-    //     }
-
-    //     GpuMesh {
-    //         vertex_buffer,
-    //         index_buffer,
-    //         primitive_topology: self.primitive_topology(),
-    //         attributes,
-    //     }
-    // }
 }

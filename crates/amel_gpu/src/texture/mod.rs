@@ -106,9 +106,9 @@ impl Texture {
         self.texture.size().depth_or_array_layers
     }
 
-    pub fn fill<T: Pod>(&self, queue: &wgpu::Queue, data: &[T])
+    pub fn fill<T>(&self, queue: &wgpu::Queue, data: &[T])
     where
-        T: Clone + Copy,
+        T: Pod + Clone + Copy,
     {
         let size = self.texture.size();
         self.write_texture_data(queue, data, size);
