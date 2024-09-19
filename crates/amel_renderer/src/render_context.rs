@@ -2,6 +2,25 @@ use super::render_resources::*;
 use amel_gpu::prelude::*;
 use amel_math::prelude::*;
 use amel_mesh::prelude::*;
+use bytemuck::{Pod, Zeroable};
+
+#[repr(C)]
+#[derive(Default, Copy, Clone, Pod, Zeroable)]
+pub struct Uniforms {
+    pub ortho: [f32; 16],
+    pub transform: [f32; 16],
+    pub color: [f32; 4],
+}
+
+impl Uniforms {
+    pub fn new(color: &Vec4, transform: &Mat4, ortho: &Mat4) -> Self {
+        Self {
+            ortho: ortho.to_cols_array(),
+            transform: transform.to_cols_array(),
+            color: color.to_array(),
+        }
+    }
+}
 
 struct State {
     background_color: Vec4,
@@ -28,6 +47,7 @@ pub struct RenderContext<'a> {
     pipeline: &'a wgpu::RenderPipeline,
     render_encoder: &'a mut wgpu::RenderPass<'a>,
     state: State,
+    uniform_buffer: DynamicUniformBuffer,
 }
 
 impl<'a> RenderContext<'a> {
@@ -37,12 +57,20 @@ impl<'a> RenderContext<'a> {
         pipeline: &'a wgpu::RenderPipeline,
         render_encoder: &'a mut wgpu::RenderPass<'a>,
     ) -> Self {
+        let uniform_buffer = DynamicUniformBuffer::new::<Uniforms>(
+            device,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            std::mem::size_of::<Uniforms>(),
+            256,
+        );
+
         RenderContext {
             device,
             queue,
             pipeline,
             render_encoder,
             state: State::default(),
+            uniform_buffer,
         }
     }
 
@@ -90,19 +118,16 @@ impl<'a> RenderContext<'a> {
     }
 
     pub fn draw_mesh(&mut self, mesh: &GpuMesh) -> &mut Self {
-        let resources = RENDER_RESOURCES.get().unwrap().lock().unwrap();
-
         let uniform_data = Uniforms::new(
             &self.state.color,
             self.state.matrix_stack.get(),
             &self.state.ortho,
         );
 
-        let uniform_buffer = resources.uniform_buffer();
-        uniform_buffer.update(self.queue, 0, &uniform_data);
+        self.uniform_buffer.update(self.queue, 0, &uniform_data);
 
         let bind_group = BindGroupBuilder::new()
-            .add_entry(uniform_buffer.binding(0))
+            .add_entry(self.uniform_buffer.binding(0))
             .build(self.device, &self.pipeline.get_bind_group_layout(0));
 
         self.render_encoder.set_bind_group(0, &bind_group, &[]);

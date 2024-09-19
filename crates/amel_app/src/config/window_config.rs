@@ -27,7 +27,7 @@ impl Default for WindowConfig {
             size: LogicalSize::new(800, 600),
             present_mode: wgpu::PresentMode::Fifo,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
-            surface_format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            surface_format: wgpu::TextureFormat::Bgra8Unorm,
             depth_format: None,
             blend_mode: wgpu::BlendState::ALPHA_BLENDING,
             desired_maximum_frame_latency: 2,

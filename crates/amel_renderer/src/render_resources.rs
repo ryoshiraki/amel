@@ -7,28 +7,9 @@ use std::sync::Arc;
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
 
-#[repr(C)]
-#[derive(Default, Copy, Clone, Pod, Zeroable)]
-pub struct Uniforms {
-    pub ortho: [f32; 16],
-    pub transform: [f32; 16],
-    pub color: [f32; 4],
-}
-
-impl Uniforms {
-    pub fn new(color: &Vec4, transform: &Mat4, ortho: &Mat4) -> Self {
-        Self {
-            ortho: ortho.to_cols_array(),
-            transform: transform.to_cols_array(),
-            color: color.to_array(),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct RenderResource {
-    uniform_buffer: Arc<DynamicUniformBuffer>,
-
+    // uniform_buffer: Arc<DynamicUniformBuffer>,
     circle: Arc<GpuMesh>,
     wire_circle: Arc<GpuMesh>,
 
@@ -47,12 +28,12 @@ pub struct RenderResource {
 
 impl RenderResource {
     pub fn new(device: &wgpu::Device) -> Self {
-        let uniform_buffer = Arc::new(DynamicUniformBuffer::new::<Uniforms>(
-            device,
-            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            std::mem::size_of::<Uniforms>(),
-            256,
-        ));
+        // let uniform_buffer = Arc::new(DynamicUniformBuffer::new::<Uniforms>(
+        //     device,
+        //     wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        //     std::mem::size_of::<Uniforms>(),
+        //     256,
+        // ));
 
         let circle = Arc::new(Circle::new(1.0).to_mesh_builder().build().to_gpu(device));
         let wire_circle = Arc::new(
@@ -77,45 +58,45 @@ impl RenderResource {
                 .to_gpu(device),
         );
 
-        let sphere = Arc::new(Sphere::new(1.0).to_mesh_builder().build().to_gpu(device));
-        let wire_sphere = Arc::new(
-            Sphere::new(1.0)
-                .to_mesh_builder()
-                .wireframe(true)
-                .build()
-                .to_gpu(device),
-        );
+        // let sphere = Arc::new(Sphere::new(1.0).to_mesh_builder().build().to_gpu(device));
+        // let wire_sphere = Arc::new(
+        //     Sphere::new(1.0)
+        //         .to_mesh_builder()
+        //         .wireframe(true)
+        //         .build()
+        //         .to_gpu(device),
+        // );
 
-        let cuboid = Arc::new(
-            Cuboid::new(1.0, 1.0, 1.0)
-                .to_mesh_builder()
-                .build()
-                .to_gpu(device),
-        );
-        let wire_cuboid = Arc::new(
-            Cuboid::new(1.0, 1.0, 1.0)
-                .to_mesh_builder()
-                .wireframe(true)
-                .build()
-                .to_gpu(device),
-        );
+        // let cuboid = Arc::new(
+        //     Cuboid::new(1.0, 1.0, 1.0)
+        //         .to_mesh_builder()
+        //         .build()
+        //         .to_gpu(device),
+        // );
+        // let wire_cuboid = Arc::new(
+        //     Cuboid::new(1.0, 1.0, 1.0)
+        //         .to_mesh_builder()
+        //         .wireframe(true)
+        //         .build()
+        //         .to_gpu(device),
+        // );
 
         Self {
-            uniform_buffer,
+            // uniform_buffer,
             circle,
             wire_circle,
             rectangle,
             wire_rectangle,
-            sphere,
-            wire_sphere,
-            cuboid,
-            wire_cuboid,
+            // sphere,
+            // wire_sphere,
+            // cuboid,
+            // wire_cuboid,
         }
     }
 
-    pub fn uniform_buffer(&self) -> Arc<DynamicUniformBuffer> {
-        self.uniform_buffer.clone()
-    }
+    // pub fn uniform_buffer(&self) -> Arc<DynamicUniformBuffer> {
+    //     self.uniform_buffer.clone()
+    // }
 
     pub fn circle(&self) -> Arc<GpuMesh> {
         self.circle.clone()

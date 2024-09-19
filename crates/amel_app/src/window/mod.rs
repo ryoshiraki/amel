@@ -4,8 +4,8 @@ pub mod surface;
 pub use frame_counter::*;
 pub use surface::*;
 
-use std::sync::Arc;
 use super::config::window_config::WindowConfig;
+use std::sync::Arc;
 
 use amel_gpu::prelude::*;
 use amel_math::prelude::*;
@@ -18,6 +18,29 @@ pub struct Window {
     // surface_render_target: Option<SurfaceRenderTarget>,
     surface_texture: Option<wgpu::SurfaceTexture>,
     depth_texture: Option<Texture>,
+}
+
+impl RenderTarget for Window {
+    fn color_formats(&self) -> Vec<Option<wgpu::TextureFormat>> {
+        vec![Some(self.config.surface_format)]
+    }
+
+    fn depth_format(&self) -> Option<wgpu::TextureFormat> {
+        self.config.depth_format
+    }
+
+    fn color_views(&self) -> Vec<Option<wgpu::TextureView>> {
+        vec![self
+            .surface_texture
+            .as_ref()
+            .map(|surface_texture| TextureViewBuilder::new().build(&surface_texture.texture))]
+    }
+
+    fn depth_view(&self) -> Option<wgpu::TextureView> {
+        self.depth_texture
+            .as_ref()
+            .map(|depth_texture| depth_texture.view())
+    }
 }
 
 impl Window {
@@ -94,7 +117,7 @@ impl Window {
     pub fn pre_adapter(&mut self, instance: &wgpu::Instance) {
         self.surface.pre_adapter(instance, self.window_arc());
     }
-    
+
     pub fn update(&mut self, device: &wgpu::Device) {
         self.frame_counter.update();
         self.surface_texture = Some(self.surface.acquire(device));
@@ -106,8 +129,14 @@ impl Window {
         }
     }
 
-    pub fn resume(&mut self, instance: &wgpu::Instance, adapter: &wgpu::Adapter, device: &wgpu::Device) {
-        self.surface.resume(instance, adapter, device, self.window_arc(), false);
+    pub fn resume(
+        &mut self,
+        instance: &wgpu::Instance,
+        adapter: &wgpu::Adapter,
+        device: &wgpu::Device,
+    ) {
+        self.surface
+            .resume(instance, adapter, device, self.window_arc(), false);
 
         self.depth_texture = self.config.depth_format.map(|format| {
             TextureBuilder::new()
@@ -237,7 +266,6 @@ impl Window {
     //         self.set_fullscreen_with(None);
     //     }
     // }
-
 }
 
 trait ToVec2 {

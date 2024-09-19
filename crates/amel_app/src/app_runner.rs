@@ -1,19 +1,20 @@
 use std::collections::HashMap;
 
 use cfg_if::cfg_if;
-use prelude::DefaultPipeline;
 use thiserror::Error;
 
 use super::config::*;
 use super::device::*;
+
 use super::window::{SurfaceWrapper, Window};
+use amel_gpu::prelude::*;
 use amel_renderer::prelude::*;
 
 #[allow(unused)]
 pub trait App: Sized {
     fn create(device: &DeviceContext) -> Self;
     // fn update(&mut self, device: &DeviceContext, window: &Window);
-    // fn render(&mut self, draw: &mut Renderer, window: &Window);
+    fn render(&mut self, context: &mut RenderContext, window: &Window);
     // fn resize(&mut self, width: u32, height: u32) {}
     // fn key_down(&mut self, key: &str) {}
     // fn key_up(&mut self, key: &str) {}
@@ -65,8 +66,15 @@ impl AppRunner {
             }
         }
 
-        let renderer =
-            Renderer::new::<DefaultPipeline>(&device_context.device(), &device_context.queue());
+        let window = windows.values().next().unwrap();
+        let mut renderer = Renderer::new::<DefaultPipeline>(
+            device_context.device(),
+            window.color_formats(),
+            window.depth_format(),
+            wgpu::BlendState::ALPHA_BLENDING,
+            wgpu::PrimitiveTopology::TriangleList,
+            1,
+        );
 
         let _ = (event_loop_function)(
             event_loop,
@@ -78,7 +86,7 @@ impl AppRunner {
                             window.resume(
                                 &device_context.instance,
                                 &device_context.adapter,
-                                &device_context.device(),
+                                device_context.device(),
                             )
                         }
 
@@ -108,6 +116,15 @@ impl AppRunner {
 
                                     window.update(device_context.device());
 
+                                    renderer.draw(
+                                        device_context.device(),
+                                        device_context.queue(),
+                                        window.color_views(),
+                                        window.depth_view(),
+                                        |context| {
+                                            app.render(context, window);
+                                        },
+                                    );
                                     // let mut frame = window.acquire(device_context.device());
                                     // let view = frame.texture.create_view(&wgpu::TextureViewDescriptor {
                                     //     format: Some(window.surface().config().view_formats[0]),

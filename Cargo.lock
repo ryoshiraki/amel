@@ -53,6 +53,7 @@ dependencies = [
  "amel_app",
  "amel_gpu",
  "amel_math",
+ "amel_renderer",
  "anyhow",
  "cfg-if",
  "env_logger",

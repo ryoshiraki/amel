@@ -14,6 +14,7 @@ thiserror.workspace = true
 amel_app = { path = "crates/amel_app" }
 amel_gpu = { path = "crates/amel_gpu" }
 amel_math = { path = "crates/amel_math" }
+amel_renderer = { path = "crates/amel_renderer" }
 
 [workspace]
 members = ["crates/*",]

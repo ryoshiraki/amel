@@ -33,14 +33,16 @@ impl<'a> PipelineTrait<'a> for DefaultPipeline {
             })
             .build(device);
 
-        let fragment_bindgroup_layout = BindGroupLayoutBuilder::new()
-            .add_to_fragment_stage(BindingType::Texture2D {
-                multisampled: false,
-                filterable: true,
-            })
-            .build(device);
+        vec![vertex_bindgroup_layout]
 
-        vec![vertex_bindgroup_layout, fragment_bindgroup_layout]
+        // let fragment_bindgroup_layout = BindGroupLayoutBuilder::new()
+        //     .add_to_fragment_stage(BindingType::Texture2D {
+        //         multisampled: false,
+        //         filterable: true,
+        //     })
+        //     .build(device);
+
+        // vec![vertex_bindgroup_layout, fragment_bindgroup_layout]
     }
 
     fn vertex_attributes() -> Vec<VertexAttributes> {

@@ -120,6 +120,10 @@ impl Texture {
         let texels = vec![value; capacity];
         self.fill(queue, &texels);
     }
+
+    pub fn view(&self) -> wgpu::TextureView {
+        TextureViewBuilder::new().build(&self.texture)
+    }
 }
 
 impl Deref for Texture {
